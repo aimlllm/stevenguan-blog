@@ -6,7 +6,6 @@ import { MDXRemote } from 'next-mdx-remote';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import PostReactions from '@/components/blog/PostReactions';
-import CommentForm from '@/components/comments/CommentForm';
 
 type Props = {
   params: {
@@ -203,24 +202,12 @@ export default async function BlogPostPage({ params }: Props) {
         {/* Comments Section */}
         <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold mb-8">Comments</h2>
-          
-          {/* Comment Form */}
-          <CommentForm 
-            postSlug={post.slug}
-            onSubmit={async (content: string, parentId?: string) => {
-              // This will be implemented when NextAuth session handling is fixed
-              console.log('Comment submitted:', { content, parentId });
-              alert('Comment functionality will be available once authentication is fully configured.');
-            }}
-          />
-          
-          {/* Comments List Placeholder */}
-          <div className="mt-8 bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center">
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center">
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Comments will load here once the database is set up.
+              Comments functionality will be available after deployment.
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Follow the setup instructions in the README to complete the configuration.
+              Authentication and real-time comments coming soon.
             </p>
           </div>
         </div>
