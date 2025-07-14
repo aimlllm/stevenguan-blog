@@ -47,18 +47,18 @@ export const database = {
   supabaseServiceRoleKey: getEnvVar('SUPABASE_SERVICE_ROLE_KEY'),
 };
 
-// Email Configuration
+// Email Configuration (Optional - not currently used)
 export const email = {
   smtp: {
-    host: getEnvVar('SMTP_HOST', 'smtp.gmail.com'),
-    port: parseInt(getEnvVar('SMTP_PORT', '587')),
-    secure: getEnvVar('SMTP_SECURE', 'false') === 'true',
-    user: getEnvVar('SMTP_USER'),
-    password: getEnvVar('SMTP_PASSWORD'),
+    host: getOptionalEnvVar('SMTP_HOST', 'smtp.gmail.com'),
+    port: parseInt(getOptionalEnvVar('SMTP_PORT', '587') || '587'),
+    secure: getOptionalEnvVar('SMTP_SECURE', 'false') === 'true',
+    user: getOptionalEnvVar('SMTP_USER'),
+    password: getOptionalEnvVar('SMTP_PASSWORD'),
   },
   addresses: {
-    admin: getEnvVar('ADMIN_EMAIL'),
-    from: getEnvVar('FROM_EMAIL'),
+    admin: getOptionalEnvVar('ADMIN_EMAIL'),
+    from: getOptionalEnvVar('FROM_EMAIL'),
   },
 };
 

@@ -3,7 +3,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import { syncUserToSupabase, getUserByEmail } from '@/lib/supabase';
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const nextAuth = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -50,4 +50,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/auth/signin',
     error: '/auth/error',
   },
-}); 
+});
+
+export const { handlers, auth, signIn, signOut } = nextAuth; 
