@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { 
   getCommentsByPost, 
   createComment, 
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 // POST /api/comments - Create a new comment
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/comments - Update comment visibility (admin only)
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json(

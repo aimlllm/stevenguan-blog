@@ -10,8 +10,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      clientId: process.env.GITHUB_ID!,
+      clientSecret: process.env.GITHUB_SECRET!,
     }),
   ],
   callbacks: {
@@ -31,7 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const dbUser = await getUserByEmail(session.user.email);
           if (dbUser) {
-            session.user.id = dbUser.id;
+            (session.user as any).id = dbUser.id;
           }
         } catch (error) {
           console.error('Error fetching user in session:', error);
