@@ -2,10 +2,25 @@ import { getPostBySlug, getAllPosts, getRelatedPosts, serializeMDX } from '@/lib
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 import { Calendar, Clock, Tag, ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { MDXRemote } from 'next-mdx-remote';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import PostReactions from '@/components/blog/PostReactions';
+import dynamic from 'next/dynamic';
+
+// Dynamically import MDX content to avoid SSR issues
+const MDXContent = dynamic(() => import('@/components/blog/MDXContent'), {
+  ssr: false,
+  loading: () => (
+    <article className="prose prose-lg dark:prose-dark max-w-none">
+      <div className="animate-pulse">
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4 w-3/4"></div>
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4 w-1/2"></div>
+      </div>
+    </article>
+  ),
+});
 
 type Props = {
   params: {
@@ -127,9 +142,7 @@ export default async function BlogPostPage({ params }: Props) {
         </header>
 
         {/* Post Content */}
-        <article className="prose prose-lg dark:prose-dark max-w-none">
-          <MDXRemote {...mdxSource} />
-        </article>
+        <MDXContent mdxSource={mdxSource} />
 
         {/* Post Reactions */}
         <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
