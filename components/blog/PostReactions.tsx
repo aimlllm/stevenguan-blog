@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { ReactionSummary } from '@/types';
 
@@ -48,7 +48,7 @@ export default function PostReactions({ postSlug }: PostReactionsProps) {
   const handleReaction = async (reactionType: 'like' | 'dislike') => {
     if (!session) {
       // Redirect to sign in
-      window.location.href = '/api/auth/signin';
+      await signIn();
       return;
     }
 
@@ -159,7 +159,7 @@ export default function PostReactions({ postSlug }: PostReactionsProps) {
       {!session && (
         <div className="text-sm text-gray-500 dark:text-gray-400">
           <button
-            onClick={() => window.location.href = '/api/auth/signin'}
+            onClick={() => signIn()}
             className="underline hover:no-underline"
           >
             Sign in

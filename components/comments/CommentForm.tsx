@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { MessageCircle, Send } from 'lucide-react';
 
 interface CommentFormProps {
@@ -51,7 +51,7 @@ export default function CommentForm({
           Sign in to share your thoughts and engage with the community.
         </p>
         <button
-          onClick={() => window.location.href = '/api/auth/signin'}
+          onClick={() => signIn()}
           className="btn-primary"
         >
           Sign In to Comment
