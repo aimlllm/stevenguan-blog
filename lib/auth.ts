@@ -1,8 +1,9 @@
+import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import { syncUserToSupabase, getUserByEmail } from '@/lib/supabase';
 
-export const authOptions = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -14,7 +15,7 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }: any) {
+    async signIn({ user, account }) {
       if (!user.email || !account) return false;
       
       try {
@@ -25,7 +26,7 @@ export const authOptions = {
         return false;
       }
     },
-    async session({ session }: any) {
+    async session({ session, token }) {
       if (session.user?.email) {
         try {
           const dbUser = await getUserByEmail(session.user.email);
@@ -38,7 +39,7 @@ export const authOptions = {
       }
       return session;
     },
-    async jwt({ token, user }: any) {
+    async jwt({ token, user }) {
       if (user) {
         token.sub = user.id;
       }
@@ -49,7 +50,4 @@ export const authOptions = {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
-  session: {
-    strategy: 'jwt' as const,
-  },
-}; 
+}); 

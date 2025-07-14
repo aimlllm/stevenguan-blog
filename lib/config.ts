@@ -27,8 +27,8 @@ export const auth = {
     clientSecret: getEnvVar('GOOGLE_CLIENT_SECRET'),
   },
   github: {
-    id: getEnvVar('GITHUB_ID'),
-    secret: getEnvVar('GITHUB_SECRET'),
+    clientId: getEnvVar('GITHUB_CLIENT_ID'),
+    clientSecret: getEnvVar('GITHUB_CLIENT_SECRET'),
   },
   linkedin: {
     clientId: getOptionalEnvVar('LINKEDIN_CLIENT_ID'),

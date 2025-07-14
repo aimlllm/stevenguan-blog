@@ -1,476 +1,479 @@
-# Blog Platform Setup Guide
+# Steven Guan's Blog Platform - Complete Setup Guide
 
-🎉 **Congratulations!** Your technical blog platform has been successfully implemented. Follow this guide to complete the setup and start using your blog.
+🎉 **Welcome!** This guide will take you through the complete process of setting up and deploying Steven Guan's technical blog platform.
 
-## ✅ What's Already Done
+## 📋 Prerequisites
 
-- ✅ Next.js 14 blog platform with dark mode
-- ✅ MDX content system with sample posts
-- ✅ Tailwind CSS styling and responsive design
-- ✅ Supabase integration for database
-- ✅ Authentication system with social providers
-- ✅ Comment system with community guidelines
-- ✅ Like/dislike reactions for posts
-- ✅ Docker development environment
-- ✅ Professional UI/UX design
+- ✅ Node.js 18+ installed
+- ✅ Git installed
+- ✅ GitHub account
+- ✅ Vercel account (free tier)
+- ✅ Supabase account (free tier)
+- ✅ Google Cloud Console access
+- ✅ GitHub Developer Settings access
 
-## 🚀 Quick Start - Bring Up Your Website
+## 🚀 Part 1: Local Development Setup
 
-### Step 1: Complete Environment Setup
+### Step 1: Clone Repository and Install Dependencies
 
-1. **Generate NextAuth Secret**:
-   ```bash
-   openssl rand -base64 32
-   ```
-
-2. **Update your `.env.local` file** with the generated secret:
-   ```bash
-   # Add this line to your .env.local file
-   NEXTAUTH_SECRET=your-generated-secret-here
-   ```
-
-3. **Add Google Client Secret** to your `.env.local`:
-   ```bash
-   # You need to get this from Google Cloud Console
-   GOOGLE_CLIENT_SECRET=your-actual-google-client-secret-here
-   ```
-
-### Step 2: Set Up Supabase Database
-
-1. **Go to your Supabase project**: https://asciyoncfkeqkkcxdrqz.supabase.co
-
-2. **Open the SQL Editor** (left sidebar → SQL Editor)
-
-3. **Create a new query** and copy-paste this entire database setup script:
-
-```sql
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Create users table
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email TEXT UNIQUE NOT NULL,
-    name TEXT,
-    image TEXT,
-    provider TEXT,
-    provider_id TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create posts table
-CREATE TABLE IF NOT EXISTS posts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    slug TEXT UNIQUE NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT,
-    published_at TIMESTAMP WITH TIME ZONE,
-    tags TEXT[],
-    categories TEXT[],
-    author TEXT,
-    featured BOOLEAN DEFAULT FALSE,
-    draft BOOLEAN DEFAULT FALSE,
-    content TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create comments table
-CREATE TABLE IF NOT EXISTS comments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    post_slug TEXT NOT NULL,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create reactions table
-CREATE TABLE IF NOT EXISTS reactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    post_slug TEXT NOT NULL,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    type TEXT NOT NULL CHECK (type IN ('like', 'dislike')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(post_slug, user_id)
-);
-
--- Create analytics table
-CREATE TABLE IF NOT EXISTS analytics (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    post_slug TEXT NOT NULL,
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    event_type TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_comments_post_slug ON comments(post_slug);
-CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
-CREATE INDEX IF NOT EXISTS idx_reactions_post_slug ON reactions(post_slug);
-CREATE INDEX IF NOT EXISTS idx_reactions_user_id ON reactions(user_id);
-CREATE INDEX IF NOT EXISTS idx_analytics_post_slug ON analytics(post_slug);
-CREATE INDEX IF NOT EXISTS idx_posts_published_at ON posts(published_at);
-CREATE INDEX IF NOT EXISTS idx_posts_draft ON posts(draft);
-CREATE INDEX IF NOT EXISTS idx_posts_featured ON posts(featured);
-
--- Enable Row Level Security
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE reactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE analytics ENABLE ROW LEVEL SECURITY;
-
--- Create policies for users table
-CREATE POLICY "Users can view all profiles" ON users
-    FOR SELECT USING (true);
-
-CREATE POLICY "Users can update own profile" ON users
-    FOR UPDATE USING (auth.uid()::text = id::text);
-
-CREATE POLICY "Users can insert own profile" ON users
-    FOR INSERT WITH CHECK (auth.uid()::text = id::text);
-
--- Create policies for posts table
-CREATE POLICY "Posts are viewable by everyone" ON posts
-    FOR SELECT USING (NOT draft OR auth.uid() IS NOT NULL);
-
-CREATE POLICY "Posts can be inserted by authenticated users" ON posts
-    FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Posts can be updated by authenticated users" ON posts
-    FOR UPDATE WITH CHECK (auth.uid() IS NOT NULL);
-
--- Create policies for comments table
-CREATE POLICY "Comments are viewable by everyone" ON comments
-    FOR SELECT USING (true);
-
-CREATE POLICY "Comments can be inserted by authenticated users" ON comments
-    FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Comments can be updated by own user" ON comments
-    FOR UPDATE USING (auth.uid()::text = user_id::text);
-
-CREATE POLICY "Comments can be deleted by own user" ON comments
-    FOR DELETE USING (auth.uid()::text = user_id::text);
-
--- Create policies for reactions table
-CREATE POLICY "Reactions are viewable by everyone" ON reactions
-    FOR SELECT USING (true);
-
-CREATE POLICY "Reactions can be inserted by authenticated users" ON reactions
-    FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Reactions can be updated by own user" ON reactions
-    FOR UPDATE USING (auth.uid()::text = user_id::text);
-
-CREATE POLICY "Reactions can be deleted by own user" ON reactions
-    FOR DELETE USING (auth.uid()::text = user_id::text);
-
--- Create policies for analytics table
-CREATE POLICY "Analytics are viewable by everyone" ON analytics
-    FOR SELECT USING (true);
-
-CREATE POLICY "Analytics can be inserted by everyone" ON analytics
-    FOR INSERT WITH CHECK (true);
-
--- Create updated_at trigger function
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Create triggers for updated_at
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON posts
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_comments_updated_at BEFORE UPDATE ON comments
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-```
-
-4. **Click "Run"** to execute the script
-
-### Step 3: Get Google Client Secret
-
-1. **Go to Google Cloud Console**: https://console.cloud.google.com/
-2. **Find your project** with OAuth Client ID: `928585084803-8purk82meipnp8k9k3sbfdd3ctc66du1.apps.googleusercontent.com`
-3. **Go to APIs & Services** → **Credentials**
-4. **Click on your OAuth 2.0 Client ID**
-5. **Copy the Client Secret** and add it to your `.env.local`
-
-### Step 4: Start Your Website
-
-Choose one of these methods:
-
-**Option A: Using Docker (Recommended)**
 ```bash
-# Build and start the development container
-docker-compose up --build
+# Clone the repository
+git clone https://github.com/aimlllm/stevenguan-blog.git
+cd stevenguan-blog
 
-# Your website will be available at: http://localhost:3000
-```
-
-**Option B: Traditional Development**
-```bash
 # Install dependencies
 npm install
-
-# Start the development server
-npm run dev
-
-# Your website will be available at: http://localhost:3000
 ```
 
-### Step 5: Test Your Setup
-
-1. **Visit your blog**: http://localhost:3000
-2. **Test authentication**: Click "Sign In" and try Google/GitHub login
-3. **Test posts**: Navigate to `/blog` and click on a post
-4. **Test reactions**: Try the like/dislike buttons (requires sign-in)
-5. **Test comments**: Try posting a comment (requires sign-in)
-
-## 🌐 DNS Setup with Porkbun
-
-### Step 1: Point Your Domain to Vercel
-
-1. **Login to Porkbun**: https://porkbun.com/account/domainsSpeedy
-2. **Find your domain** (stevenguan.com)
-3. **Click "DNS"** next to your domain
-4. **Add these DNS records**:
-
-   **For the main domain (stevenguan.com):**
-   ```
-   Type: A
-   Host: @
-   Answer: 76.76.19.19
-   TTL: 300
-   ```
-
-   **For www subdomain:**
-   ```
-   Type: CNAME
-   Host: www
-   Answer: stevenguan.com
-   TTL: 300
-   ```
-
-   **Alternative A Records (use all of these):**
-   ```
-   Type: A
-   Host: @
-   Answer: 76.76.19.19
-   TTL: 300
-   
-   Type: A
-   Host: @
-   Answer: 76.223.126.88
-   TTL: 300
-   ```
-
-### Step 2: Configure Domain in Vercel
-
-1. **Deploy to Vercel first** (see deployment section below)
-2. **Go to your Vercel dashboard**: https://vercel.com/dashboard
-3. **Click on your project**
-4. **Go to Settings** → **Domains**
-5. **Add domain**: `stevenguan.com`
-6. **Add domain**: `www.stevenguan.com`
-
-### Step 3: Wait for DNS Propagation
-
-- DNS changes can take 24-48 hours to propagate
-- You can check status at: https://www.whatsmydns.net/
-- Enter your domain and check if it resolves to Vercel's IP
-
-## 🚀 Deploy to Production
-
-### Step 1: Deploy to Vercel
+### Step 2: Environment Configuration
 
 ```bash
-# Install Vercel CLI
-npm i -g vercel
+# Copy environment template
+cp env.example .env.local
 
-# Login to Vercel
-vercel login
-
-# Deploy your project
-vercel
-
-# Follow the prompts:
-# - Link to existing project? No
-# - What's your project's name? personal-blog
-# - In which directory is your code located? ./
-# - Want to override settings? No
+# Generate NextAuth secret
+openssl rand -base64 32
 ```
 
-### Step 2: Add Environment Variables to Vercel
-
-1. **Go to your Vercel dashboard**
-2. **Click on your project**
-3. **Go to Settings** → **Environment Variables**
-4. **Add each variable from your `.env.local`**:
-   - `NEXTAUTH_SECRET`
-   - `NEXTAUTH_URL` (set to `https://stevenguan.com`)
-   - `GOOGLE_CLIENT_ID`
-   - `GOOGLE_CLIENT_SECRET`
-   - `GITHUB_CLIENT_ID`
-   - `GITHUB_CLIENT_SECRET`
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `SITE_URL` (set to `https://stevenguan.com`)
-   - All other variables from your `.env.local`
-
-### Step 3: Update OAuth Redirect URIs
-
-**Google OAuth:**
-1. Go to Google Cloud Console
-2. Update redirect URIs to include: `https://stevenguan.com/api/auth/callback/google`
-
-**GitHub OAuth:**
-1. Go to GitHub → Settings → Developer settings → OAuth Apps
-2. Update redirect URIs to include: `https://stevenguan.com/api/auth/callback/github`
-
-### Step 4: Test Production Deployment
-
-1. **Wait for deployment** to complete
-2. **Visit your domain**: https://stevenguan.com
-3. **Test all features** as before
-
-## 📝 Adding New Blog Posts
-
-Create new MDX files in `content/posts/`:
-
+**Update your `.env.local` file:**
 ```bash
-# Create a new post file
-touch content/posts/my-new-post.mdx
+# Next.js Configuration
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-generated-secret-from-above
+
+# Social Authentication (you'll get these in the next steps)
+GOOGLE_CLIENT_ID=928585084803-8purk82meipnp8k9k3sbfdd3ctc66du1.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GITHUB_CLIENT_ID=Iv23liM1F88FmJSn3G9a
+GITHUB_CLIENT_SECRET=0b671dd5e8a2e246877129d4bb213eed84c7a1ed
+
+# Supabase Database (provided)
+NEXT_PUBLIC_SUPABASE_URL=https://asciyoncfkeqkkcxdrqz.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzY2l5b25jZmtlcWtrY3hkcnF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxOTIyMjIsImV4cCI6MjA2Nzc2ODIyMn0.YI8nIWMIu0Ls4Kqs6jjc6epKei-4cfCSWxFWLMzIX6Q
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzY2l5b25jZmtlcWtrY3hkcnF6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjE5MjIyMiwiZXhwIjoyMDY3NzY4MjIyfQ.7cjF6YgzMH3JZZBTmyEDDLxZCZTQSDZWhOu1yGsFFsI
+
+# Site Configuration
+SITE_URL=http://localhost:3000
+SITE_NAME=Steven Guan's log
+AUTHOR_NAME=Steven
+AUTHOR_EMAIL=steven@stevenguan.com
 ```
 
-Add frontmatter and content:
-```markdown
----
-title: "My New Post"
-slug: "my-new-post"
-description: "A brief description"
-publishedAt: "2024-12-15"
-tags: ["tag1", "tag2"]
-categories: ["Category"]
-author: "Steven"
-featured: false
-draft: false
----
-
-# Your content here
-
-This is your blog post content written in MDX.
-```
-
-Deploy:
-```bash
-git add .
-git commit -m "Add new blog post"
-git push
-# Vercel will automatically deploy
-```
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-1. **"Invalid next.config.js options detected"** warning:
-   - This is just a warning and doesn't affect functionality
-   - The app will still work correctly
-
-2. **Authentication not working**:
-   - Check that all OAuth redirect URIs are correct
-   - Verify environment variables are set in both local and Vercel
-   - Check browser console for errors
-
-3. **Database errors**:
-   - Ensure the Supabase setup script ran successfully
-   - Check Row Level Security policies
-   - Verify API keys are correct
-
-4. **Comments not working**:
-   - Make sure you're signed in
-   - Check browser network tab for API errors
-   - Verify database tables exist
-
-5. **DNS not working**:
-   - Wait up to 48 hours for DNS propagation
-   - Check DNS records are correct in Porkbun
-   - Verify domain is added in Vercel
-
-### Development Commands
+### Step 3: Test Local Development
 
 ```bash
 # Start development server
 npm run dev
 
-# Build for production
-npm run build
-
-# Type checking
-npm run type-check
-
-# Linting
-npm run lint
-
-# Docker development
-docker-compose up --build
+# Visit http://localhost:3000
+# You should see the blog homepage
 ```
 
-## 📊 Features Overview
+## 🗄️ Part 2: Supabase Database Setup
 
-### ✅ Current Features
-- 📝 MDX blog posts with syntax highlighting
-- 🌗 Dark/light mode toggle
-- 🔐 Social authentication (Google, GitHub)
-- 💬 Comment system with guidelines
-- 👍 Post reactions (like/dislike)
-- 📱 Mobile responsive design
-- 🔍 Search and filtering
-- 🏷️ Tags and categories
-- 📊 Basic analytics ready
+The Supabase database is already configured, but here's an overview of the setup:
 
-### 🚧 Next Steps (Optional)
-- 📧 Email notifications (requires SMTP setup)
-- 🔗 LinkedIn/Facebook OAuth (requires app setup)
-- 📊 Advanced analytics dashboard
-- 📧 Newsletter signup
-- 🎨 Comment markdown rendering
-- 🔍 Full-text search
+### Database Schema Overview
 
-## 🎯 Success Checklist
+The database includes these main tables:
+- **users** - Store authenticated user profiles
+- **comments** - Blog post comments with user relationships
+- **reactions** - Like/dislike reactions for posts
+- **analytics** - Track page views and user interactions
 
-- [ ] Environment variables configured
-- [ ] Database setup completed in Supabase
-- [ ] Google Client Secret added
-- [ ] Website running locally on http://localhost:3000
-- [ ] Google OAuth working
-- [ ] GitHub OAuth working  
-- [ ] Can create and view blog posts
-- [ ] Authentication works
-- [ ] Comments work
-- [ ] Reactions work
-- [ ] Deployed to Vercel
-- [ ] DNS configured with Porkbun
-- [ ] Domain working: https://stevenguan.com
+### Row Level Security (RLS) Policies
 
-## 📞 Support
+**Key Security Features:**
+- Users can only edit their own comments and reactions
+- Public users can view non-hidden content
+- Authenticated users can create comments and reactions
+- Service role has admin access for user management
 
-If you encounter any issues:
-1. Check the browser console for errors
-2. Verify all environment variables are set
-3. Ensure OAuth apps are configured correctly
-4. Check the Supabase database setup
-5. Verify DNS records in Porkbun
+**Example RLS Policy:**
+```sql
+CREATE POLICY "Users can update own comments" ON comments
+    FOR UPDATE USING (auth.uid()::text = user_id::text);
+```
 
-Your blog platform is ready to go! 🚀 Happy blogging! 
+The RLS ensures data security at the database level, preventing unauthorized access even if the application logic has vulnerabilities.
+
+## 🔐 Part 3: OAuth Configuration
+
+### Google OAuth Setup
+
+1. **Go to Google Cloud Console**: https://console.cloud.google.com/
+2. **Navigate to APIs & Services** → **Credentials**
+3. **Find your OAuth 2.0 Client ID**: `928585084803-8purk82meipnp8k9k3sbfdd3ctc66du1.apps.googleusercontent.com`
+4. **Copy the Client Secret** and add it to your `.env.local`
+5. **Add redirect URIs**:
+   - Development: `http://localhost:3000/api/auth/callback/google`
+   - Production: `https://stevenguan.com/api/auth/callback/google`
+
+### GitHub OAuth Setup
+
+1. **Go to GitHub Settings**: https://github.com/settings/developers
+2. **Click "OAuth Apps"**
+3. **Find your app** with Client ID: `Iv23liM1F88FmJSn3G9a`
+4. **Update redirect URIs**:
+   - Development: `http://localhost:3000/api/auth/callback/github`
+   - Production: `https://stevenguan.com/api/auth/callback/github`
+
+## ⚡ Part 4: Complete Vercel Deployment Guide
+
+### Step 1: Prepare for Deployment
+
+**Ensure your code is committed:**
+```bash
+git add .
+git commit -m "Ready for production deployment"
+git push origin main
+```
+
+### Step 2: Create New Project in Vercel
+
+1. **Visit Vercel Dashboard**: https://vercel.com/dashboard
+
+2. **Click "Add New..." → "Project"**
+
+3. **Import Git Repository**:
+   - Click "Import" next to `aimlllm/stevenguan-blog`
+   - If not visible, click "Adjust GitHub App Permissions" to grant access
+
+4. **Configure Project Settings**:
+   ```
+   Project Name: stevenguan-blog
+   Framework Preset: Next.js
+   Root Directory: ./ (top-level)
+   Build Command: npm run build
+   Install Command: npm install
+   Output Directory: .next (leave default)
+   ```
+
+5. **Click "Deploy"** (Don't add environment variables yet)
+
+### Step 3: Add Environment Variables in Vercel
+
+**After the initial deployment:**
+
+1. **Go to Project Settings** → **Environment Variables**
+
+2. **Add each variable for Production environment:**
+
+   **NextAuth Configuration:**
+   ```
+   NEXTAUTH_URL = https://stevenguan.com
+   NEXTAUTH_SECRET = your-generated-secret-here
+   ```
+
+   **Social Authentication:**
+   ```
+   GOOGLE_CLIENT_ID = 928585084803-8purk82meipnp8k9k3sbfdd3ctc66du1.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET = your-google-client-secret
+   GITHUB_CLIENT_ID = Iv23liM1F88FmJSn3G9a
+   GITHUB_CLIENT_SECRET = 0b671dd5e8a2e246877129d4bb213eed84c7a1ed
+   ```
+
+   **Supabase Database:**
+   ```
+   NEXT_PUBLIC_SUPABASE_URL = https://asciyoncfkeqkkcxdrqz.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzY2l5b25jZmtlcWtrY3hkcnF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxOTIyMjIsImV4cCI6MjA2Nzc2ODIyMn0.YI8nIWMIu0Ls4Kqs6jjc6epKei-4cfCSWxFWLMzIX6Q
+   SUPABASE_SERVICE_ROLE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzY2l5b25jZmtlcWtrY3hkcnF6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjE5MjIyMiwiZXhwIjoyMDY3NzY4MjIyfQ.7cjF6YgzMH3JZZBTmyEDDLxZCZTQSDZWhOu1yGsFFsI
+   ```
+
+   **Site Configuration:**
+   ```
+   SITE_URL = https://stevenguan.com
+   SITE_NAME = Steven Guan's log
+   AUTHOR_NAME = Steven
+   AUTHOR_EMAIL = steven@stevenguan.com
+   ```
+
+3. **Click "Save" for each variable**
+
+### Step 4: Configure Custom Domain
+
+1. **Go to Project Settings** → **Domains**
+
+2. **Add Domain**:
+   - Enter: `stevenguan.com`
+   - Click "Add"
+
+3. **Add WWW Subdomain**:
+   - Enter: `www.stevenguan.com`
+   - Click "Add"
+   - Set to redirect to `stevenguan.com`
+
+4. **Domain Configuration Status**:
+   - Wait for DNS propagation (up to 48 hours)
+   - Vercel will show domain status and SSL certificate
+
+### Step 5: Trigger Production Deployment
+
+**After adding environment variables:**
+
+1. **Go to Deployments tab**
+2. **Click "Redeploy"** on the latest deployment
+3. **Select "Use existing Build Cache"**
+4. **Click "Redeploy"**
+
+**Monitor deployment:**
+- Build logs will show any errors
+- Deployment typically takes 2-3 minutes
+- You'll get a production URL when complete
+
+### Step 6: Verify Production Deployment
+
+**Test these features:**
+
+1. **Visit your domain**: https://stevenguan.com
+2. **Test authentication**:
+   - Click "Sign In"
+   - Try Google and GitHub login
+   - Verify user profile appears
+3. **Test blog functionality**:
+   - Navigate to `/blog`
+   - Click on blog posts
+   - Test like/dislike buttons (requires auth)
+   - Test comment submission (requires auth)
+4. **Test responsive design** on mobile devices
+
+## 🌐 Part 5: DNS & Domain Configuration
+
+### Porkbun DNS Setup (Already Configured)
+
+Since you mentioned DNS is already configured, here's what should be set:
+
+**DNS Records in Porkbun:**
+```
+Type: A
+Host: @
+Value: 76.76.19.19
+TTL: 300
+
+Type: A
+Host: @  
+Value: 76.223.126.88
+TTL: 300
+
+Type: CNAME
+Host: www
+Value: stevenguan.com
+TTL: 300
+```
+
+**Check DNS Propagation:**
+- Use https://www.whatsmydns.net/
+- Enter `stevenguan.com`
+- Verify it resolves to Vercel's IP addresses
+
+## 🔧 Part 6: Vercel ↔ Supabase Integration Architecture
+
+### API Route Structure
+
+**Authentication Flow:**
+```
+User → NextAuth → OAuth Provider → NextAuth → Supabase (user sync) → Session
+```
+
+**Comment Submission Flow:**
+```
+User → Frontend → /api/comments → NextAuth (verify) → Supabase (RLS) → Real-time update
+```
+
+**Data Security:**
+- All API routes verify authentication via NextAuth
+- Supabase RLS policies provide database-level security
+- Service role key used for admin operations only
+
+### Real-time Features
+
+**Supabase Real-time Connection:**
+```typescript
+// Frontend subscribes to database changes
+supabase
+  .channel('comments')
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'comments'
+  }, (payload) => {
+    // Auto-refresh comments when new ones are added
+  })
+  .subscribe();
+```
+
+## 📝 Part 7: Content Management
+
+### Adding New Blog Posts
+
+1. **Create MDX file** in `content/posts/`:
+   ```bash
+   touch content/posts/new-post-slug.mdx
+   ```
+
+2. **Add frontmatter**:
+   ```markdown
+   ---
+   title: "Your Post Title"
+   slug: "new-post-slug"
+   description: "Brief description for SEO"
+   publishedAt: "2024-12-15"
+   tags: ["AI", "Technology"]
+   categories: ["Technical"]
+   author: "Steven"
+   featured: false
+   draft: false
+   ---
+
+   # Your Content Here
+
+   Write your blog post content in Markdown.
+   ```
+
+3. **Commit and deploy**:
+   ```bash
+   git add .
+   git commit -m "Add new blog post"
+   git push origin main
+   # Vercel auto-deploys
+   ```
+
+### Content Features
+
+- **Auto-categorization** based on keywords
+- **Reading time calculation**
+- **SEO optimization** with meta tags
+- **Syntax highlighting** for code blocks
+- **Responsive images** and layouts
+
+## 🛠️ Part 8: Troubleshooting
+
+### Common Issues and Solutions
+
+#### **1. Build Errors in Vercel**
+
+**Environment Variable Issues:**
+```bash
+# Check in Vercel dashboard that all required variables are set
+# Ensure no trailing spaces or quotes in variable values
+```
+
+**TypeScript Errors:**
+```bash
+# Run locally to catch errors before deployment
+npm run type-check
+npm run build
+```
+
+#### **2. Authentication Not Working**
+
+**Check OAuth Redirect URIs:**
+- Google: Must include exact production URL
+- GitHub: Must include exact production URL
+- No trailing slashes in URLs
+
+**Session Issues:**
+```javascript
+// Check NextAuth configuration
+// Verify NEXTAUTH_URL matches exact domain
+// Verify NEXTAUTH_SECRET is set
+```
+
+#### **3. Database Connection Issues**
+
+**Supabase RLS Policies:**
+```sql
+-- Verify policies are enabled
+SELECT * FROM pg_policies WHERE tablename = 'comments';
+```
+
+**API Key Verification:**
+```bash
+# Test Supabase connection
+curl -H "apikey: YOUR_ANON_KEY" \
+     -H "Authorization: Bearer YOUR_ANON_KEY" \
+     "https://asciyoncfkeqkkcxdrqz.supabase.co/rest/v1/users?select=*"
+```
+
+#### **4. Domain and DNS Issues**
+
+**Check DNS Propagation:**
+```bash
+# Use online tools or command line
+nslookup stevenguan.com
+dig stevenguan.com A
+```
+
+**SSL Certificate Issues:**
+- Vercel automatically provisions SSL
+- May take up to 24 hours for full propagation
+- Check Vercel domain settings for status
+
+### Development Commands
+
+```bash
+# Development
+npm run dev              # Start dev server
+npm run build           # Test production build
+npm run type-check      # Check TypeScript
+
+# Docker Development
+docker-compose up --build  # Isolated environment
+
+# Deployment
+git push origin main     # Auto-deploys to Vercel
+vercel --prod           # Manual deployment via CLI
+```
+
+## 🎯 Deployment Checklist
+
+### Pre-Deployment
+- [ ] Code committed to GitHub
+- [ ] Environment variables configured locally
+- [ ] Local build successful (`npm run build`)
+- [ ] Authentication tested locally
+
+### Vercel Setup
+- [ ] Project imported from GitHub
+- [ ] Environment variables added in Vercel
+- [ ] Domain configured in Vercel
+- [ ] Production deployment successful
+- [ ] SSL certificate active
+
+### OAuth Configuration
+- [ ] Google OAuth redirect URIs updated for production
+- [ ] GitHub OAuth redirect URIs updated for production
+- [ ] Authentication tested on production
+
+### Domain & DNS
+- [ ] DNS records pointing to Vercel
+- [ ] Domain accessible (https://stevenguan.com)
+- [ ] WWW redirect working
+- [ ] SSL certificate valid
+
+### Feature Testing
+- [ ] Blog posts loading correctly
+- [ ] Authentication working (Google & GitHub)
+- [ ] Comments system functional
+- [ ] Like/dislike reactions working
+- [ ] Dark/light mode toggle working
+- [ ] Mobile responsive design verified
+
+## 🚀 Success!
+
+Your blog platform is now live at **https://stevenguan.com**!
+
+**Next Steps:**
+1. **Write your first post** and publish it
+2. **Share on social media** to drive traffic
+3. **Monitor analytics** in Vercel dashboard
+4. **Collect user feedback** and iterate
+
+**For support:**
+- GitHub Issues: https://github.com/aimlllm/stevenguan-blog/issues
+- Check deployment logs in Vercel dashboard
+- Monitor Supabase database performance
+
+---
+
+**🎉 Congratulations! Your professional blog platform is now live and ready for content creation!** 

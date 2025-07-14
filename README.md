@@ -1,313 +1,451 @@
-# Technical Blog Platform
+# Steven Guan's Technical Blog Platform
 
-A modern, minimalist technical blog platform built with Next.js 14, TypeScript, and Tailwind CSS. Features include MDX content support, dark mode, social authentication, real-time comments, and analytics.
+A modern, scalable technical blog platform built with Next.js 14, TypeScript, Tailwind CSS, and Supabase. Features serverless architecture, social authentication, real-time comments, and professional UI/UX.
 
-## Features
+[![GitHub Repository](https://img.shields.io/badge/GitHub-stevenguan--blog-blue)](https://github.com/aimlllm/stevenguan-blog)
+[![Deployment](https://img.shields.io/badge/Deploy-Vercel-black)](https://vercel.com)
+[![Database](https://img.shields.io/badge/Database-Supabase-green)](https://supabase.com)
 
-- **📝 MDX Content**: Write blog posts in Markdown with React components
-- **🌗 Dark Mode**: Built-in dark/light theme switching
-- **🔐 Social Authentication**: Login with Google, GitHub, LinkedIn, and Facebook
-- **💬 Real-time Comments**: Interactive comment system with moderation
-- **👍 Post Reactions**: Like/dislike system for posts
-- **📊 Analytics**: Built-in analytics and traffic tracking
-- **🔍 Search & Filter**: Search posts by title, content, tags, and categories
-- **📱 Mobile Responsive**: Optimized for all device sizes
-- **⚡ Fast Performance**: Static site generation with dynamic features
-- **🔒 Security**: Built-in security headers and protection
+## 🏗️ System Architecture
 
-## Tech Stack
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#4F46E5',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#4338CA',
+    'lineColor': '#6366F1',
+    'secondaryColor': '#E2E8F0',
+    'tertiaryColor': '#F1F5F9',
+    'textColor': '#000000',
+    'mainBkg': '#ffffff'
+  }
+}}%%
+graph TB
+    subgraph "Public Internet"
+        User["👤 Web Browser<br/>stevenguan.com"]
+        Domain["🌐 Custom Domain<br/>Porkbun DNS"]
+    end
 
-- **Frontend**: Next.js 14 (App Router), React 18, TypeScript
-- **Styling**: Tailwind CSS, next-themes
-- **Content**: MDX, gray-matter, rehype/remark plugins
-- **Authentication**: NextAuth.js v5
-- **Database**: Supabase (PostgreSQL)
-- **Deployment**: Vercel
-- **Analytics**: Vercel Analytics, Supabase Analytics
+    subgraph "Vercel Platform"
+        direction TB
+        WebApp["🖥️ Next.js 14 App<br/>React Frontend<br/>SSR + SSG"]
+        APIRoutes["⚡ API Routes<br/>/api/auth/*<br/>/api/comments<br/>/api/reactions"]
+        NextAuth["🔐 NextAuth v5<br/>Session Management<br/>JWT Tokens"]
+        
+        WebApp --> APIRoutes
+        APIRoutes --> NextAuth
+    end
 
-## Quick Start
+    subgraph "OAuth Providers"
+        Google["🔵 Google OAuth<br/>Authentication"]
+        GitHub["⚫ GitHub OAuth<br/>Authentication"]
+    end
 
-### 1. Clone and Install
+    subgraph "Supabase Platform"
+        direction TB
+        Database["🗄️ PostgreSQL<br/>Users, Comments<br/>Reactions, Analytics"]
+        RLS["🛡️ Row Level Security<br/>Access Control"]
+        Realtime["⚡ Real-time<br/>Live Updates"]
+        
+        Database --> RLS
+        Database --> Realtime
+    end
 
-```bash
-git clone <repository-url>
-cd personal-blog
-npm install
+    subgraph "Content & Development"
+        direction TB
+        GitHub_Repo["📦 GitHub Repository<br/>aimlllm/stevenguan-blog<br/>Source Code"]
+        MDX["📝 MDX Content<br/>Blog Posts<br/>Static Files"]
+        
+        GitHub_Repo --> MDX
+    end
+
+    %% User Flow
+    User --> Domain
+    Domain --> WebApp
+    
+    %% Authentication Flow
+    WebApp --> NextAuth
+    NextAuth --> Google
+    NextAuth --> GitHub
+    
+    %% Database Flow
+    APIRoutes --> Database
+    Database --> Realtime
+    Realtime --> WebApp
+    
+    %% Development Flow
+    GitHub_Repo --> WebApp
+    
+    %% Styling
+    classDef default fill:#F8FAFC,stroke:#475569,stroke-width:2px
+    classDef auth fill:#E0E7FF,stroke:#4338CA,stroke-width:2px
+    classDef data fill:#F3E8FF,stroke:#6B21A8,stroke-width:2px
+    classDef content fill:#DCFCE7,stroke:#166534,stroke-width:2px
+    
+    class User,Domain,WebApp,APIRoutes default
+    class NextAuth,Google,GitHub auth
+    class Database,RLS,Realtime data
+    class GitHub_Repo,MDX content
 ```
 
-### 2. Environment Setup
+## 🔄 Authentication & Comment Flow
 
-Copy the environment template:
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#4F46E5',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#4338CA',
+    'lineColor': '#6366F1',
+    'secondaryColor': '#E2E8F0',
+    'tertiaryColor': '#F1F5F9',
+    'textColor': '#000000',
+    'mainBkg': '#ffffff'
+  }
+}}%%
+sequenceDiagram
+    participant U as 👤 User
+    participant V as 🖥️ Vercel Frontend
+    participant N as 🔐 NextAuth
+    participant O as 🔵 OAuth Provider
+    participant A as ⚡ API Routes
+    participant S as 🗄️ Supabase
 
-```bash
-cp env.example .env.local
+    Note over U,S: Authentication Flow
+    U->>V: 1. Click "Sign In"
+    V->>N: 2. Redirect to NextAuth
+    N->>O: 3. OAuth Challenge
+    O->>U: 4. OAuth Consent
+    U->>O: 5. Grant Permission
+    O->>N: 6. OAuth Token
+    N->>A: 7. User Profile Data
+    A->>S: 8. Sync User to Database
+    S->>A: 9. User Record Created
+    A->>N: 10. Session Created
+    N->>V: 11. User Authenticated
+    V->>U: 12. Signed In State
+
+    Note over U,S: Comment Submission Flow
+    U->>V: 13. Write Comment
+    V->>A: 14. POST /api/comments
+    A->>N: 15. Verify Session
+    N->>A: 16. User ID + Auth Status
+    A->>S: 17. Insert Comment with RLS
+    S->>A: 18. Comment Saved
+    A->>V: 19. Success Response
+    V->>U: 20. Comment Displayed
+    S->>V: 21. Real-time Update
 ```
 
-Edit `.env.local` with your configuration:
+## 🚀 Deployment & DNS Flow
 
-```env
-# Next.js Configuration
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key-here
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#4F46E5',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#4338CA',
+    'lineColor': '#6366F1',
+    'secondaryColor': '#E2E8F0',
+    'tertiaryColor': '#F1F5F9',
+    'textColor': '#000000',
+    'mainBkg': '#ffffff'
+  }
+}}%%
+graph LR
+    subgraph "Development"
+        DEV["💻 Local Development<br/>npm run dev<br/>localhost:3000"]
+    end
 
-# Social Authentication
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GITHUB_ID=your-github-client-id
-GITHUB_SECRET=your-github-client-secret
+    subgraph "Source Control"
+        REPO["📦 GitHub Repository<br/>aimlllm/stevenguan-blog<br/>main branch"]
+    end
 
-# Database (Supabase)
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+    subgraph "Build & Deploy"
+        VERCEL["⚡ Vercel Platform<br/>Auto Deploy<br/>Environment Variables"]
+        BUILD["🔧 Build Process<br/>Next.js Build<br/>Static + Server"]
+    end
 
-# Email Configuration
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-ADMIN_EMAIL=your-admin-email@gmail.com
-FROM_EMAIL=noreply@yourdomain.com
+    subgraph "DNS & Domain"
+        PORKBUN["🌐 Porkbun DNS<br/>A Record: 76.76.19.19<br/>CNAME: www → domain"]
+        DOMAIN["🔗 stevenguan.com<br/>Custom Domain"]
+    end
 
-# Site Configuration
-SITE_NAME=Your Technical Blog
-SITE_URL=https://yourdomain.com
-SITE_DESCRIPTION=AI industry insights and technical learning
-AUTHOR_NAME=Your Name
-AUTHOR_EMAIL=your-email@gmail.com
+    subgraph "Production"
+        PROD["🌍 Production Site<br/>https://stevenguan.com<br/>Global CDN"]
+    end
+
+    DEV --> REPO
+    REPO --> VERCEL
+    VERCEL --> BUILD
+    BUILD --> PROD
+    PORKBUN --> DOMAIN
+    DOMAIN --> PROD
+
+    classDef dev fill:#E0E7FF,stroke:#4338CA,stroke-width:2px
+    classDef deploy fill:#F3E8FF,stroke:#6B21A8,stroke-width:2px
+    classDef dns fill:#DCFCE7,stroke:#166534,stroke-width:2px
+    classDef prod fill:#FEF3C7,stroke:#92400E,stroke-width:2px
+    
+    class DEV dev
+    class REPO,VERCEL,BUILD deploy
+    class PORKBUN,DOMAIN dns
+    class PROD prod
 ```
 
-### 3. Development with Docker (Recommended)
+## 💻 Tech Stack
 
-For safe development without affecting your Mac system:
+### **Frontend & Framework**
+- **Next.js 14** (App Router) - React framework with SSR/SSG
+- **React 18** - UI library with latest features
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first styling
+- **next-themes** - Dark/light mode support
 
-```bash
-# Build and start the development container
-docker-compose up --build
+### **Authentication & Security**
+- **NextAuth v5** - Authentication framework
+- **OAuth Providers** - Google, GitHub social login
+- **JWT Tokens** - Secure session management
+- **Row Level Security** - Database-level access control
 
-# Access the application
-open http://localhost:3000
-```
+### **Backend & Database**
+- **Supabase** - PostgreSQL database with real-time features
+- **API Routes** - Serverless functions on Vercel
+- **Real-time Subscriptions** - Live comment updates
+- **Database Triggers** - Automatic timestamp updates
 
-### 4. Traditional Development
+### **Content & Development**
+- **MDX** - Markdown with React components
+- **gray-matter** - Frontmatter parsing
+- **rehype/remark** - Content processing plugins
+- **Docker** - Containerized development environment
 
-```bash
-npm run dev
-```
+### **Deployment & Infrastructure**
+- **Vercel** - Serverless hosting and deployment
+- **Porkbun** - DNS management
+- **GitHub** - Source code repository
+- **Environment Variables** - Secure configuration
 
-## Configuration Required
+## 🗄️ Database Schema
 
-### 1. Social Authentication Setup
-
-#### Google OAuth
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing
-3. Enable Google+ API
-4. Create OAuth 2.0 credentials
-5. Add authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`
-
-#### GitHub OAuth
-1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
-2. Create a new OAuth App
-3. Set Authorization callback URL: `http://localhost:3000/api/auth/callback/github`
-
-#### LinkedIn OAuth
-1. Go to [LinkedIn Developer Portal](https://www.linkedin.com/developers/)
-2. Create a new app
-3. Add redirect URLs: `http://localhost:3000/api/auth/callback/linkedin`
-
-#### Facebook OAuth
-1. Go to [Facebook for Developers](https://developers.facebook.com/)
-2. Create a new app
-3. Add Facebook Login product
-4. Set redirect URI: `http://localhost:3000/api/auth/callback/facebook`
-
-### 2. Supabase Database Setup
-
-1. Create a [Supabase](https://supabase.com/) account
-2. Create a new project
-3. Run the following SQL in the SQL Editor:
-
+### **Users Table**
 ```sql
--- Users table
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  name VARCHAR(255),
-  avatar_url TEXT,
-  provider VARCHAR(50),
-  provider_id VARCHAR(255),
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  image TEXT,
+  provider TEXT NOT NULL,
+  provider_id TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+```
 
--- Comments table
+### **Comments Table**
+```sql
 CREATE TABLE comments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  post_slug VARCHAR(255) NOT NULL,
+  post_slug TEXT NOT NULL,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
-  parent_id UUID REFERENCES comments(id) ON DELETE CASCADE,
-  is_hidden BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+```
 
--- Post reactions table
-CREATE TABLE post_reactions (
+### **Reactions Table**
+```sql
+CREATE TABLE reactions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  post_slug VARCHAR(255) NOT NULL,
+  post_slug TEXT NOT NULL,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  reaction_type VARCHAR(20) CHECK (reaction_type IN ('like', 'dislike')),
+  type TEXT NOT NULL CHECK (type IN ('like', 'dislike')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(post_slug, user_id)
 );
+```
 
--- Analytics table
-CREATE TABLE page_views (
+### **Analytics Table**
+```sql
+CREATE TABLE analytics (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  post_slug VARCHAR(255),
+  post_slug TEXT NOT NULL,
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  ip_hash VARCHAR(64),
-  user_agent_hash VARCHAR(64),
+  event_type TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
--- Enable Row Level Security (RLS)
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE post_reactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE page_views ENABLE ROW LEVEL SECURITY;
-
--- Create policies (adjust as needed)
-CREATE POLICY "Users can view all users" ON users FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY "Comments are viewable by everyone" ON comments FOR SELECT USING (NOT is_hidden);
-CREATE POLICY "Authenticated users can create comments" ON comments FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Users can update own comments" ON comments FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Reactions are viewable by everyone" ON post_reactions FOR SELECT USING (true);
-CREATE POLICY "Authenticated users can manage reactions" ON post_reactions FOR ALL USING (auth.role() = 'authenticated');
-
-CREATE POLICY "Page views are insertable by everyone" ON page_views FOR INSERT WITH CHECK (true);
 ```
 
-4. Get your project URL and API keys from Settings > API
+## 🔧 Vercel ↔ Supabase API Interface
 
-### 3. Email Configuration
+### **Authentication API**
+```typescript
+// /api/auth/[...nextauth]/route.ts
+// NextAuth handles OAuth and creates sessions
+// Sessions include user ID from Supabase users table
 
-For Gmail SMTP:
-1. Enable 2-factor authentication
-2. Generate an App Password
-3. Use the App Password in `SMTP_PASSWORD`
+// Connection: NextAuth → Supabase via syncUserToSupabase()
+const { data } = await supabaseAdmin
+  .from('users')
+  .insert({ email, name, provider, provider_id });
+```
 
-## Writing Blog Posts
+### **Comments API**
+```typescript
+// /api/comments/route.ts
+// POST: Create new comment with authentication
+// GET: Fetch comments for a post
 
-### 1. Create a new MDX file
+// Connection: Vercel API → Supabase with RLS
+const { data } = await supabaseAdmin
+  .from('comments')
+  .insert({ post_slug, user_id, content })
+  .select('*, user:users(name, image)');
+```
 
-Create a new file in `content/posts/`:
+### **Reactions API**
+```typescript
+// /api/reactions/route.ts
+// POST: Toggle like/dislike reaction
+// GET: Get reaction counts for posts
+
+// Connection: Upsert pattern with unique constraint
+const { data } = await supabaseAdmin
+  .from('reactions')
+  .upsert({ post_slug, user_id, type })
+  .onConflict('post_slug,user_id');
+```
+
+### **Real-time Connection**
+```typescript
+// Client-side real-time subscriptions
+supabase
+  .channel('comments')
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'comments'
+  }, (payload) => {
+    // Auto-update UI when new comments arrive
+  })
+  .subscribe();
+```
+
+## ⚙️ Environment Variables
 
 ```bash
-content/posts/my-new-post.mdx
+# Next.js Configuration
+NEXTAUTH_URL=https://stevenguan.com
+NEXTAUTH_SECRET=your-generated-secret
+
+# Social Authentication
+GOOGLE_CLIENT_ID=928585084803-8purk82meipnp8k9k3sbfdd3ctc66du1.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GITHUB_CLIENT_ID=Iv23liM1F88FmJSn3G9a
+GITHUB_CLIENT_SECRET=0b671dd5e8a2e246877129d4bb213eed84c7a1ed
+
+# Supabase Database
+NEXT_PUBLIC_SUPABASE_URL=https://asciyoncfkeqkkcxdrqz.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Site Configuration
+SITE_URL=https://stevenguan.com
+SITE_NAME=Steven Guan's log
+AUTHOR_NAME=Steven
+AUTHOR_EMAIL=steven@stevenguan.com
 ```
 
-### 2. Add frontmatter
+## 🚀 Quick Start
+
+### **1. Clone Repository**
+```bash
+git clone https://github.com/aimlllm/stevenguan-blog.git
+cd stevenguan-blog
+npm install
+```
+
+### **2. Environment Setup**
+```bash
+cp env.example .env.local
+# Edit .env.local with your configuration
+```
+
+### **3. Development**
+```bash
+# Docker (Recommended)
+docker-compose up --build
+
+# Traditional
+npm run dev
+```
+
+### **4. Production Deployment**
+See the detailed [SETUP-GUIDE.md](./SETUP-GUIDE.md) for complete Vercel deployment instructions.
+
+## 📝 Writing Blog Posts
+
+Create MDX files in `content/posts/`:
 
 ```markdown
 ---
-title: "My New Post"
-slug: "my-new-post"
-description: "A brief description of the post"
+title: "Understanding Large Language Models"
+slug: "understanding-llms"
+description: "Deep dive into LLM architecture and applications"
 publishedAt: "2024-12-15"
-tags: ["javascript", "react", "tutorial"]
-categories: ["Development", "Tutorial"]
-author: "Your Name"
-featured: false
+tags: ["AI", "LLM", "Machine Learning"]
+categories: ["Technical", "AI"]
+author: "Steven"
+featured: true
 draft: false
-readingTime: 5
 ---
 
-# Your blog content here
+# Your content here
 
-This is where you write your blog post content in Markdown format.
-
-## You can use headings
-
-- Lists
-- Code blocks
-- And more!
+Write your blog post in **Markdown** with React components support.
 ```
 
-### 3. Automatic Features
+## 🛡️ Security Features
 
-- **Auto-categorization**: Posts are automatically categorized based on keywords
-- **Reading time**: Calculated automatically if not specified
-- **SEO optimization**: Meta tags generated from frontmatter
-- **Social sharing**: Open Graph and Twitter cards
+- **Row Level Security (RLS)** - Database-level access control
+- **JWT Session Management** - Secure authentication tokens
+- **OAuth Integration** - Trusted social login providers
+- **Environment Variables** - Secure configuration management
+- **API Rate Limiting** - Built-in Vercel protection
 
-## Deployment
+## 📊 Features
 
-### Vercel Deployment
+### ✅ **Implemented**
+- 📝 MDX blog posts with syntax highlighting
+- 🌗 Dark/light mode toggle
+- 🔐 Social authentication (Google, GitHub)
+- 💬 Real-time comment system
+- 👍 Post reactions (like/dislike)
+- 📱 Mobile responsive design
+- 🔍 Search and filtering
+- 🏷️ Tags and categories
+- 📊 Analytics tracking
+- 🐳 Docker development environment
 
-1. Connect your GitHub repository to Vercel
-2. Add environment variables in Vercel dashboard
-3. Deploy automatically on push
+### 🚧 **Extensible**
+- 📧 Email notifications
+- 🔗 LinkedIn/Facebook OAuth
+- 📊 Advanced analytics dashboard
+- 📧 Newsletter signup
+- 🎨 Rich text editor
+- 🔍 Full-text search
 
-### Custom Domain (Porkbun)
+## 📞 Support
 
-1. Add domain in Vercel dashboard
-2. Update DNS records in Porkbun:
-   - A Record: `@` → `76.76.19.61`
-   - CNAME Record: `www` → `yourdomain.com`
+- **Repository**: [GitHub Issues](https://github.com/aimlllm/stevenguan-blog/issues)
+- **Documentation**: [Setup Guide](./SETUP-GUIDE.md)
+- **Live Site**: [stevenguan.com](https://stevenguan.com)
 
-## Development
+---
 
-### Project Structure
-
-```
-├── app/                 # Next.js app router
-│   ├── api/            # API routes
-│   ├── blog/           # Blog pages
-│   └── globals.css     # Global styles
-├── components/         # React components
-│   ├── ui/            # UI components
-│   ├── blog/          # Blog components
-│   └── auth/          # Auth components
-├── content/           # MDX blog posts
-│   └── posts/         # Blog post files
-├── lib/               # Utilities and configs
-│   ├── config.ts      # Centralized config
-│   ├── mdx.ts         # MDX processing
-│   └── utils.ts       # Utility functions
-├── types/             # TypeScript types
-└── public/            # Static assets
-```
-
-### Available Scripts
-
-```bash
-npm run dev        # Start development server
-npm run build      # Build for production
-npm run start      # Start production server
-npm run lint       # Run ESLint
-npm run type-check # Run TypeScript check
-```
-
-### Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
-
-## Support
-
-For issues and questions:
-- Create an issue in the GitHub repository
-- Email: your-email@domain.com
-
-## License
-
-MIT License - see LICENSE file for details 
+**Built with ❤️ by Steven Guan** | **Powered by Vercel + Supabase** 
