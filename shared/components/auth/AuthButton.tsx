@@ -4,7 +4,7 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import { LogIn, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
-import { getInitials } from '@/lib/utils';
+import { getInitials } from '@/shared/utils/utils';
 
 export default function AuthButton() {
   const { data: session, status } = useSession();

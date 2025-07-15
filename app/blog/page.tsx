@@ -1,5 +1,5 @@
-import { getAllPosts, getAllCategories, getAllTags } from '@/lib/mdx';
-import { formatDate } from '@/lib/utils';
+import { getAllPosts, getAllCategories, getAllTags } from '@/shared/utils/mdx';
+import { formatDate } from '@/shared/utils/format';
 import { Calendar, Clock, Tag, Search } from 'lucide-react';
 import Link from 'next/link';
 import { Metadata } from 'next';

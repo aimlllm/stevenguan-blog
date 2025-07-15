@@ -1,5 +1,5 @@
-import { getPostBySlug, getAllPosts, getRelatedPosts, serializeMDX } from '@/lib/mdx';
-import { formatDate, formatRelativeTime } from '@/lib/utils';
+import { getPostBySlug, getAllPosts, getRelatedPosts, serializeMDX } from '@/shared/utils/mdx';
+import { formatDate, formatRelativeTime } from '@/shared/utils/format';
 import { Calendar, Clock, Tag, ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Metadata } from 'next';

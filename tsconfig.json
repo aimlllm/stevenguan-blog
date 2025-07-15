@@ -23,9 +23,9 @@
     "paths": {
       "@/*": ["./*"],
       "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/types/*": ["./types/*"],
-      "@/utils/*": ["./utils/*"]
+      "@/shared/*": ["./shared/*"],
+      "@/backend/*": ["./backend/*"],
+      "@/frontend/*": ["./frontend/*"]
     }
   },
   "include": [
