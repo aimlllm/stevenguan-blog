@@ -1,12 +1,41 @@
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
-import { serialize } from 'next-mdx-remote/serialize';
-import { MDXRemoteSerializeResult } from 'next-mdx-remote';
+// TODO: Install next-mdx-remote package
+// import { serialize } from 'next-mdx-remote/serialize';
+// import { MDXRemoteSerializeResult } from 'next-mdx-remote';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import remarkGfm from 'remark-gfm';
-import { BlogPost, BlogPostFrontmatter } from '@/types';
+// Define MDX-specific types for frontend blog posts
+interface BlogPostFrontmatter {
+  title: string;
+  description: string;
+  publishedAt: string;
+  tags?: string[];
+  categories?: string[];
+  featured?: boolean;
+  author?: string;
+  readingTime?: number;
+  slug?: string;
+  draft?: boolean;
+  coverImage?: string;
+}
+
+interface BlogPost {
+  slug: string;
+  title: string;
+  description: string;
+  publishedAt: string;
+  tags: string[];
+  categories: string[];
+  featured: boolean;
+  author?: string;
+  readingTime: number;
+  content: string;
+  draft: boolean;
+  coverImage?: string;
+}
 import { calculateReadingTime, extractKeywords } from '@/shared/utils/utils';
 
 const POSTS_PATH = path.join(process.cwd(), 'content/posts');
@@ -40,7 +69,7 @@ export function getAllPosts(): BlogPost[] {
     
     // Auto-categorize based on content
     const autoCategories = extractKeywords(content);
-    const categories = Array.from(new Set([...frontmatter.categories, ...autoCategories]));
+    const categories = Array.from(new Set([...(frontmatter.categories || []), ...autoCategories]));
     
     return {
       slug,
@@ -115,8 +144,13 @@ export function getRecentPosts(limit: number = 5): BlogPost[] {
 
 /**
  * Serialize MDX content for rendering
+ * TODO: Implement after installing next-mdx-remote
  */
-export async function serializeMDX(content: string): Promise<MDXRemoteSerializeResult> {
+export async function serializeMDX(content: string): Promise<any> {
+  // Temporary placeholder - needs next-mdx-remote package
+  return { compiledSource: content };
+  
+  /* TODO: Uncomment after installing next-mdx-remote
   return await serialize(content, {
     mdxOptions: {
       remarkPlugins: [remarkGfm],
@@ -134,6 +168,7 @@ export async function serializeMDX(content: string): Promise<MDXRemoteSerializeR
       ],
     },
   });
+  */
 }
 
 /**

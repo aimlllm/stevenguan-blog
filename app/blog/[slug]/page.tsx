@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: post.description,
       type: 'article',
       publishedTime: post.publishedAt,
-      authors: [post.author],
+      authors: post.author ? [post.author] : [],
       tags: post.tags,
     },
     twitter: {
@@ -94,7 +94,7 @@ export default async function BlogPostPage({ params }: Props) {
         {/* Post Header */}
         <header className="mb-12">
           <div className="flex flex-wrap gap-2 mb-4">
-            {post.categories.map((category) => (
+            {post.categories.map((category: string) => (
               <span
                 key={category}
                 className="px-3 py-1 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 rounded-full text-sm font-medium"
