@@ -129,14 +129,17 @@ export function extractYouTubeId(url: string): string | null {
 }
 
 export function createYouTubeEmbed(videoId: string): string {
-  return `<div class="youtube-embed">
-    <iframe 
-      width="560" 
-      height="315" 
-      src="https://www.youtube.com/embed/${videoId}" 
-      frameborder="0" 
-      allowfullscreen>
-    </iframe>
+  return `<div class="youtube-embed my-8">
+    <div class="relative aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
+      <iframe 
+        src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1" 
+        title="YouTube Video"
+        class="w-full h-full"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen>
+      </iframe>
+    </div>
   </div>`;
 }
 
