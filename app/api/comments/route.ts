@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { auth } from '@/backend/lib/auth';
 import { 
-  getCommentsByPost, 
-  createComment, 
-  toggleCommentVisibility 
-} from '@/lib/supabase';
-import { hashString } from '@/lib/utils';
+  getCommentsByPostId, 
+  createComment
+} from '@/backend/lib/database';
+import { hashString } from '@/shared/utils/utils';
 
 // GET /api/comments - Get comments for a post
 export async function GET(request: NextRequest) {
@@ -20,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const comments = await getCommentsByPost(postSlug);
+    const comments = await getCommentsByPostId(postSlug);
     return NextResponse.json({ data: comments });
   } catch (error) {
     console.error('Error fetching comments:', error);
@@ -64,8 +63,8 @@ export async function POST(request: NextRequest) {
     }
 
     const comment = await createComment({
-      post_slug: postSlug,
-      user_id: userId,
+      post_id: postSlug,
+      author_id: userId,
       content: content.trim(),
       parent_id: parentId || null,
     });
@@ -111,10 +110,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    await toggleCommentVisibility(commentId, isHidden);
-    
+    // TODO: Implement comment visibility toggle in database module
     return NextResponse.json({ 
-      message: `Comment ${isHidden ? 'hidden' : 'shown'} successfully` 
+      message: 'Comment visibility update not implemented yet' 
     });
   } catch (error) {
     console.error('Error updating comment visibility:', error);

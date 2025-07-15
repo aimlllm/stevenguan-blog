@@ -1,6 +1,6 @@
 import { ArrowRight, Calendar, Clock, Tag } from 'lucide-react';
 import Link from 'next/link';
-import { site } from '@/lib/config';
+import { site } from '@/shared/utils/config';
 
 export default function HomePage() {
   return (

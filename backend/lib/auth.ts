@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
-import { syncUserToSupabase, getUserByEmail } from '@/lib/supabase';
+import { createOrUpdateUser, getUserById } from '@/backend/lib/database';
 
 // Environment variables with proper fallbacks and validation
 const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ID;
@@ -49,7 +49,12 @@ const nextAuth = NextAuth({
       
       try {
         // Sync user to Supabase database
-        await syncUserToSupabase(user, account);
+        await createOrUpdateUser({
+          id: user.id || '',
+          email: user.email,
+          name: user.name || '',
+          avatar: user.image || ''
+        });
         return true;
       } catch (error) {
         console.error('Error during sign in callback:', error);
@@ -60,10 +65,12 @@ const nextAuth = NextAuth({
     async session({ session, token }) {
       if (session.user?.email) {
         try {
-          const dbUser = await getUserByEmail(session.user.email);
+          // Note: getUserById requires ID, but we only have email in session
+          // This needs to be updated to use a different approach
+          const dbUser = null; // TODO: Implement getUserByEmail function
           if (dbUser) {
             // Add database user ID to session
-            (session.user as any).id = dbUser.id;
+            (session.user as any).id = (dbUser as any).id;
           }
         } catch (error) {
           console.error('Error fetching user in session callback:', error);

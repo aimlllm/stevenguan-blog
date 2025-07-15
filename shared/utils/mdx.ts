@@ -7,7 +7,7 @@ import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import remarkGfm from 'remark-gfm';
 import { BlogPost, BlogPostFrontmatter } from '@/types';
-import { calculateReadingTime, extractKeywords } from '@/lib/utils';
+import { calculateReadingTime, extractKeywords } from '@/shared/utils/utils';
 
 const POSTS_PATH = path.join(process.cwd(), 'content/posts');
 

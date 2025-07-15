@@ -5,7 +5,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Chrome, Github, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { site } from '@/lib/config';
+import { site } from '@/shared/utils/config';
 
 export default function SignInPage() {
   const { data: session, status } = useSession();

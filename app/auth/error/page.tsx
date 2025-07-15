@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, Home, RotateCcw, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { site } from '@/lib/config';
+import { site } from '@/shared/utils/config';
 
 export default function AuthErrorPage() {
   const searchParams = useSearchParams();

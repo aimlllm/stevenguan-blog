@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { 
-  getPostReactions, 
-  upsertPostReaction, 
-  removePostReaction 
-} from '@/lib/supabase';
+  getReactionsByPostId, 
+  createOrUpdateReaction, 
+  deleteReaction 
+} from '@/backend/lib/database';
 
 // GET /api/reactions - Get reactions for a post
 export async function GET(request: NextRequest) {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const reactions = await getPostReactions(postSlug, userId || undefined);
+    const reactions = await getReactionsByPostId(postSlug);
     return NextResponse.json({ data: reactions });
   } catch (error) {
     console.error('Error fetching reactions:', error);
@@ -50,8 +50,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await upsertPostReaction(postSlug, userId, reactionType);
-    const updatedReactions = await getPostReactions(postSlug, userId);
+    await createOrUpdateReaction({
+      type: reactionType,
+      user_id: userId,
+      post_id: postSlug
+    });
+    const updatedReactions = await getReactionsByPostId(postSlug);
     
     return NextResponse.json({ data: updatedReactions });
   } catch (error) {
@@ -77,8 +81,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await removePostReaction(postSlug, userId);
-    const updatedReactions = await getPostReactions(postSlug, userId);
+    await deleteReaction(userId, postSlug);
+    const updatedReactions = await getReactionsByPostId(postSlug);
     
     return NextResponse.json({ data: updatedReactions });
   } catch (error) {
