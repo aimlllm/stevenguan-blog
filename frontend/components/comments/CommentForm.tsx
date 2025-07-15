@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { MessageCircle, Send } from 'lucide-react';
+import { validateComment } from '@/shared/utils/validation';
+import { apiPost } from '@/shared/utils/api';
 
 interface CommentFormProps {
   postSlug: string;

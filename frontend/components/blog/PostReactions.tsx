@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { ReactionSummary } from '@/types';
+import { apiGet, apiPost, apiDelete } from '@/shared/utils/api';
+import { REACTION_TYPES } from '@/shared/constants';
 
 interface PostReactionsProps {
   postSlug: string;
